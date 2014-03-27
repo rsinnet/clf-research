@@ -1,0 +1,61 @@
+#include "math2mat.hpp"
+
+/*
+ * DM1DqShaped.cc - Shaped DM1Dq matrix
+ */
+
+void dm1dqshaped(double *DM1Dq, double *q, double *p)
+{
+  VectorXd foo(<* nr * ns *>);
+  foo << <* DM1Dqcform *>;
+  std::memcpy(DM1Dq, foo.data(), <* nr * ns *> * sizeof(double));
+}
+
+void mexFunction( int nlhs, mxArray *plhs[],
+                  int nrhs, const mxArray *prhs[] )
+{
+  double *DM1Dq, *q, *p;
+  size_t mrows,ncols;
+  
+  const unsigned int ne = <* ne *>;
+  const unsigned int nr = <* nr *>;
+  const unsigned int ns = <* ns *>;
+  
+  /* Check for proper number of arguments. */
+  if(nrhs!=2) {
+    mexErrMsgIdAndTxt( "MATLAB:DM1DqShaped:invalidNumInputs",
+		       "Two inputs required (q, p).");
+  } else if(nlhs>1) {
+    mexErrMsgIdAndTxt( "MATLAB:DM1DqShaped:maxlhs",
+		       "Too many output arguments.");
+  }
+  
+  /* The input must be a noncomplex scalar double.*/
+  int i = 0;
+  mrows = mxGetM(prhs[i]);
+  ncols = mxGetN(prhs[i]);
+  if( !mxIsDouble(prhs[i]) || mxIsComplex(prhs[i]) ||
+      !(mrows==ne && ncols==1) ) {
+    mexErrMsgIdAndTxt( "MATLAB:DM1DqShaped:inputNotRealScalarDouble",
+		       "q is wrong.");
+  }
+
+  mrows = mxGetM(prhs[++i]);
+  ncols = mxGetN(prhs[i]);
+  if( !mxIsDouble(prhs[i]) || mxIsComplex(prhs[i]) ||
+      !(mrows==1 && ncols==1) ) {
+    mexErrMsgIdAndTxt( "MATLAB:DM1DqShaped:inputNotRealScalarDouble",
+		       "p is wrong.");
+  }
+  
+  /* Create matrix for the return argument. */
+  plhs[0] = mxCreateDoubleMatrix((mwSize)nr, (mwSize)ns, mxREAL);
+  DM1Dq = mxGetPr(plhs[0]);  
+
+  /* Assign pointers to each input and output. */
+  q = mxGetPr(prhs[0]);
+  p = mxGetPr(prhs[1]);
+  
+  /* Call the timestwo subroutine. */
+  dm1dqshaped(DM1Dq, q, p);
+}

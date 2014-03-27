@@ -1,0 +1,37 @@
+=========================================================================
+	      Screws.m - a screw package for mathematica
+
+		    Richard Murray and Sudipto Sur
+				   
+	     Division of Engineering and Applied Science
+		  California Institute of Technology
+			  Pasadena, CA 91125
+
+Screws.m is a Mathematica package for performing screw calculus.
+It follows the treatment described in _A Mathematical Introduction to
+Robotic Manipulation_, by R. M. Murray, Z. Li, and S. S. Sastry
+(CRC Press, 1994).  This package implements screw theory in
+3-dimensional Euclidean space (some functions work in n dimensions).
+
+Copyright (c) 1994, Richard Murray.
+Permission is granted to copy, modify and redistribute this file, 
+provided that this header message is retained.
+
+=========================================================================
+	RobotLinks.m - robot kinematics package using Screws.m
+
+		    Richard Murray and Sudipto Sur
+				   
+	     Division of Engineering and Applied Science
+		  California Institute of Technology
+			  Pasadena, CA 91125
+
+RobotLinks.m is a Mathematica package for performing screw calculus.
+It uses the basic functions defined in Screws.m to implement some
+common function in robot kinematics. It follows the treatment described
+Chapter 3 of _A Mathematical Introduction to Robotic Manipulation_,
+by R. M. Murray, Z. Li, and S. S. Sastry (CRC Press, 1994).
+
+Copyright (c) 1994, Richard Murray.
+Permission is granted to copy, modify and redistribute this file, 
+provided that this header message is retained.

@@ -1,0 +1,60 @@
+#include "math2mat.hpp"
+
+/*
+ * PlotPositions.cc - Positions for plotting robot.,
+ */
+
+void plotpos(double *P, double *q, double *p)
+{
+  VectorXd foo(<* 3 * npp *>);
+  foo << <* plotposcform *>;
+  std::memcpy(P, foo.data(), <* 3 * npp *> * sizeof(double));
+}
+
+void mexFunction( int nlhs, mxArray *plhs[],
+                  int nrhs, const mxArray *prhs[] )
+{
+  double *P, *q, *p;
+  size_t mrows, ncols;
+  
+  const unsigned int ne = <* ne *>;
+  const unsigned int nr = <* nr *>;
+  
+  /* Check for proper number of arguments. */
+  if(nrhs!=2) {
+    mexErrMsgIdAndTxt( "MATLAB:PlotPositions:invalidNumInputs",
+		       "Two inputs required (q, p).");
+  } else if(nlhs>1) {
+    mexErrMsgIdAndTxt( "MATLAB:PlotPositions:maxlhs",
+		       "Too many output arguments.");
+  }
+  
+  /* The input must be a noncomplex scalar double.*/
+  int i = 0;
+  mrows = mxGetM(prhs[i]);
+  ncols = mxGetN(prhs[i]);
+  if( !mxIsDouble(prhs[i]) || mxIsComplex(prhs[i]) ||
+      !(mrows==ne && ncols==1) ) {
+    mexErrMsgIdAndTxt( "MATLAB:PlotPositions:inputNotRealScalarDouble",
+		       "q is wrong.");
+  }
+
+  mrows = mxGetM(prhs[++i]);
+  ncols = mxGetN(prhs[i]);
+  if( !mxIsDouble(prhs[i]) || mxIsComplex(prhs[i]) ||
+      !(mrows==1 && ncols==1) ) {
+    mexErrMsgIdAndTxt( "MATLAB:PlotPositions:inputNotRealScalarDouble",
+		       "p is wrong.");
+  }
+  
+  /* Create matrix for the return argument. */
+  plhs[0] = mxCreateDoubleMatrix((mwSize)<* 3 *>, (mwSize)<* npp *>, mxREAL);
+  P = mxGetPr(plhs[0]);
+
+  /* Assign pointers to each input and output. */
+  q = mxGetPr(prhs[0]);
+  p = mxGetPr(prhs[1]);
+  
+  /* Call the timestwo subroutine. */
+  plotpos(P, q, p);
+}

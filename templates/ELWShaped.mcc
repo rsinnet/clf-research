@@ -1,0 +1,68 @@
+#include "math2mat.hpp"
+
+/*
+ * ELWShaped.cc - Shaped ELW matrix
+ */
+
+void elwshaped(double *ELW, double *q, double *dq, double *p)
+{
+  VectorXd foo(<* nr *>);
+  foo << <* ELWcform *>;
+  std::memcpy(ELW, foo.data(), <* nr *> * sizeof(double));
+}
+
+void mexFunction( int nlhs, mxArray *plhs[],
+                  int nrhs, const mxArray *prhs[] )
+{
+  double *ELW, *q, *dq, *p;
+  size_t mrows,ncols;
+  
+  const unsigned int ne = <* ne *>;
+  const unsigned int nr = <* nr *>;
+  
+  /* Check for proper number of arguments. */
+  if(nrhs!=3) {
+    mexErrMsgIdAndTxt( "MATLAB:ELWShaped:invalidNumInputs",
+		       "Three inputs required (q, dq, p).");
+  } else if(nlhs>1) {
+    mexErrMsgIdAndTxt( "MATLAB:ELWShaped:maxlhs",
+		       "Too many output arguments.");
+  }
+  
+  /* The input must be a noncomplex scalar double.*/
+  int i = 0;
+  mrows = mxGetM(prhs[i]);
+  ncols = mxGetN(prhs[i]);
+  if( !mxIsDouble(prhs[i]) || mxIsComplex(prhs[i]) ||
+      !(mrows==ne && ncols==1) ) {
+    mexErrMsgIdAndTxt( "MATLAB:ELWShaped:inputNotRealScalarDouble",
+		       "q is wrong.");
+  }
+
+  mrows = mxGetM(prhs[++i]);
+  ncols = mxGetN(prhs[i]);
+  if( !mxIsDouble(prhs[i]) || mxIsComplex(prhs[i]) ||
+      !(mrows==ne && ncols==1) ) {
+    mexErrMsgIdAndTxt( "MATLAB:ELWShaped:inputNotRealScalarDouble",
+		       "dq is wrong.");
+  }
+
+  mrows = mxGetM(prhs[++i]);
+  ncols = mxGetN(prhs[i]);
+  if( !mxIsDouble(prhs[i]) || mxIsComplex(prhs[i]) ||
+      !(mrows==2 && ncols==1) ) {
+    mexErrMsgIdAndTxt( "MATLAB:ELWShaped:inputNotRealScalarDouble",
+		       "p is wrong.");
+  }
+  
+  /* Create matrix for the return argument. */
+  plhs[0] = mxCreateDoubleMatrix((mwSize)nr, (mwSize)1, mxREAL);
+  ELW = mxGetPr(plhs[0]);  
+
+  /* Assign pointers to each input and output. */
+  q = mxGetPr(prhs[0]);
+  dq = mxGetPr(prhs[1]);
+  p = mxGetPr(prhs[2]);
+  
+  elwshaped(ELW, q, dq, p);
+}

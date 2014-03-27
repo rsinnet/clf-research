@@ -1,0 +1,50 @@
+#include "math2mat.hpp"
+
+/*
+ * HeightNSF.cc - Height of the non-stance foot.
+ */
+
+void mexFunction( int nlhs, mxArray *plhs[],
+                  int nrhs, const mxArray *prhs[] )
+{
+  double *q, *p;
+  size_t mrows, ncols;
+  
+  const unsigned int ne = <* ne *>;
+  const unsigned int nr = <* nr *>;
+  
+  /* Check for proper number of arguments. */
+  if(nrhs!=2) {
+    mexErrMsgIdAndTxt( "MATLAB:PlotPositions:invalidNumInputs",
+		       "Two inputs required (q, p).");
+  } else if(nlhs>1) {
+    mexErrMsgIdAndTxt( "MATLAB:PlotPositions:maxlhs",
+		       "Too many output arguments.");
+  }
+  
+  /* The input must be a noncomplex scalar double.*/
+  int i = 0;
+  mrows = mxGetM(prhs[i]);
+  ncols = mxGetN(prhs[i]);
+  if( !mxIsDouble(prhs[i]) || mxIsComplex(prhs[i]) ||
+      !(mrows==ne && ncols==1) ) {
+    mexErrMsgIdAndTxt( "MATLAB:PlotPositions:inputNotRealScalarDouble",
+		       "q is wrong.");
+  }
+
+  mrows = mxGetM(prhs[++i]);
+  ncols = mxGetN(prhs[i]);
+  if( !mxIsDouble(prhs[i]) || mxIsComplex(prhs[i]) ||
+      !(mrows==1 && ncols==1) ) {
+    mexErrMsgIdAndTxt( "MATLAB:PlotPositions:inputNotRealScalarDouble",
+		       "p is wrong.");
+  }
+  
+  /* Assign pointers to each input and output. */
+  q = mxGetPr(prhs[0]);
+  p = mxGetPr(prhs[1]);
+  
+  /* Create scalar for the return argument. */
+  double hnsf = <* hnsfcform *>;
+  plhs[0] = mxCreateDoubleScalar(hnsf);
+}

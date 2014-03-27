@@ -1,0 +1,69 @@
+#include "math2mat.hpp"
+
+/*
+ * CShaped.cc - Shaped C matrix
+ */
+
+void cshaped(double *C, double *q, double *dq, double *p)
+{
+  VectorXd foo(<* nr * nr *>);
+  foo << <* Ccform *>;
+  std::memcpy(C, foo.data(), <* nr * nr *> * sizeof(double));
+}
+
+void mexFunction( int nlhs, mxArray *plhs[],
+                  int nrhs, const mxArray *prhs[] )
+{
+  double *C, *q, *dq, *p;
+  size_t mrows,ncols;
+  
+  const unsigned int ne = <* ne *>;
+  const unsigned int nr = <* nr *>;
+  
+  /* Check for proper number of arguments. */
+  if(nrhs!=3) {
+    mexErrMsgIdAndTxt( "MATLAB:CShaped:invalidNumInputs",
+		       "Three inputs required (q, dq, p).");
+  } else if(nlhs>1) {
+    mexErrMsgIdAndTxt( "MATLAB:CShaped:maxlhs",
+		       "Too many output arguments.");
+  }
+  
+  /* The input must be a noncomplex scalar double.*/
+  int i = 0;
+  mrows = mxGetM(prhs[i]);
+  ncols = mxGetN(prhs[i]);
+  if( !mxIsDouble(prhs[i]) || mxIsComplex(prhs[i]) ||
+      !(mrows==ne && ncols==1) ) {
+    mexErrMsgIdAndTxt( "MATLAB:CShaped:inputNotRealScalarDouble",
+		       "q is wrong.");
+  }
+
+  mrows = mxGetM(prhs[++i]);
+  ncols = mxGetN(prhs[i]);
+  if( !mxIsDouble(prhs[i]) || mxIsComplex(prhs[i]) ||
+      !(mrows==ne && ncols==1) ) {
+    mexErrMsgIdAndTxt( "MATLAB:CShaped:inputNotRealScalarDouble",
+		       "dq is wrong.");
+  }
+
+  mrows = mxGetM(prhs[++i]);
+  ncols = mxGetN(prhs[i]);
+  if( !mxIsDouble(prhs[i]) || mxIsComplex(prhs[i]) ||
+      !(mrows==1 && ncols==1) ) {
+    mexErrMsgIdAndTxt( "MATLAB:CShaped:inputNotRealScalarDouble",
+		       "p is wrong.");
+  }
+  
+  /* Create matrix for the return argument. */
+  plhs[0] = mxCreateDoubleMatrix((mwSize)nr, (mwSize)nr, mxREAL);
+  C = mxGetPr(plhs[0]);  
+
+  /* Assign pointers to each input and output. */
+  q = mxGetPr(prhs[0]);
+  dq = mxGetPr(prhs[1]);
+  p = mxGetPr(prhs[2]);
+  
+  /* Call the timestwo subroutine. */
+  cshaped(C, q, dq, p);
+}
