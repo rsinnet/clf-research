@@ -1,5 +1,5 @@
-%HSIM2DFLAT   Specific hsim model with feet and a torso, multidomain.
 classdef hsim2dflat < hsys.hsim
+%%%HSIM2DFLAT Specific hsim model with feet and a torso, multidomain.
     properties
         modelClass = @hsys.hmodel2dflat;
     end

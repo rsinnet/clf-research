@@ -8,7 +8,8 @@ end
 
 
 builddir = fullfile('.', sprintf(...
-    'build_old-model-%dd-feet-amber-suite', modelDimension));
+    'build_old-model-%dd-point-feet-amber-suite', modelDimension));
+%    'build_old-model-%dd-feet-amber-suite', modelDimension));
 
 files = dir(fullfile(builddir, '*.cc'));
 
