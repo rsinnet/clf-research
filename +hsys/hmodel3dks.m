@@ -29,7 +29,7 @@ classdef hmodel3dks < hsys.hmodel3dflat
 
             x = [qf; dqf];
         end
-
+        
         % x_pi is the canonical projection associated with x_iota
         % and as such, like x_iota, it only applies if the system
         % is on the guard.

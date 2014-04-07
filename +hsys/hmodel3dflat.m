@@ -60,7 +60,7 @@ classdef hmodel3dflat < hsys.hmodelsva
 
         % Overload function from hsys.hmodel to use C++
         function val = ...
-                nonStanceHeelHeight(this, t, x, cons, leg, vfx);
+                legSwapGuard(this, t, x, cons, leg, vfx);
             q = this.splitState(x);
             val = HeightNSH(q, leg); % Extract the height
         end
@@ -169,7 +169,7 @@ classdef hmodel3dflat < hsys.hmodelsva
             dqout(4:6) = [wz; wx; wy];
 
         end
-
+        
         % Overload superclass functions
         function jacobians = ...
                 getJacobianStruct(this, cons, leg, legSwap)

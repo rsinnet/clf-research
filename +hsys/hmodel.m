@@ -38,11 +38,6 @@ classdef hmodel < hsys.hmodelbase
         event_labels;
         el_length;
     end
-
-    properties (Abstract)
-        footLength;
-        hipWidth;
-    end
     
     properties (Constant)
         FIRST_DOMAIN = 1;

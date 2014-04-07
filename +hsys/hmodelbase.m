@@ -34,6 +34,9 @@ classdef hmodelbase < handle
         el_length;
 
         transformToAbsolute;
+        
+        footLength;
+        hipWidth;
     end
 
     properties (Constant, Abstract)
@@ -83,7 +86,7 @@ end
         fIndex = getForceIndex(this, cons, mask);
         
         %> Computes the unilateral constraint associated with leg swap.
-        h_val = legSwapGuard(this, q, leg)
+        h_val = legSwapGuard(this, q, leg);
     end
 
     methods

@@ -139,7 +139,7 @@ classdef hmodel3d < hsys.hmodelsva
         % sagittal plane.
             xval = pHipX(q, [], leg);
         end
-
+       
         % This functions updates the base coordinates for leg swap
         % at impact. Since the base frame does not move for this
         % model, this function is simply the identity map.

@@ -417,7 +417,7 @@ classdef hsim3dflat < hsys.hsim
                 % FIXME, these Lie derivatives must taken into
                 % account the full order dynamics.
                 lambda = -p(2)*qc(1);
-                yz = dqc(1) + 1/m_ff * (-lambda + M_fq*dqc(2:nc));
+                yz = dqc(1) + 1/m_ff * (-lambda + M_fq*dqc(2:nc))
 
                 Dyz_f = p(2)/m_ff;
                 Dyz_q = -1/m_ff^2 * dm_ff_dq * (-lambda + M_fq*dqc(2:nc)) ...
