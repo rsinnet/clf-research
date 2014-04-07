@@ -1,11 +1,11 @@
-classdef hsim2dflat < hsys.hsim
+classdef hsim2dpoint < hsys.hsim
 %%%HSIM2DFLAT Specific hsim model with feet and a torso, multidomain.
     properties
-        modelClass = @hsys.hmodel2dflat;
+        modelClass = @hsys.hmodel2dpoint;
     end
 
     methods
-        function this =  hsim2dflat()
+        function this =  hsim2dpoint()
         %% Default constructor
             this = this@hsys.hsim(); % call super constructor
 
@@ -75,13 +75,6 @@ classdef hsim2dflat < hsys.hsim
             c.nsas.gains.kd = 3; %.1
             c.nsas.gains.q0 = 0;
 
-            %% Non-stance scuffing prevention controller
-            c.nssp = struct();
-            c.nssp.Name = 'Non-Stance Scuffing Prevention';
-
-            c.nssp.gains = struct();
-            c.nssp.gains.rho = 1000;     % spatial dissipation rate
-            c.nssp.gains.beta =  20;     % amplification level
 
             %% Knee kick-off controller
             c.nsks = struct();
@@ -92,52 +85,15 @@ classdef hsim2dflat < hsys.hsim
             c.nsks.gains.kd = 1;
             c.nsks.gains.q0 = .5;
 
-            %% Stance heel lift controller
-            c.sthl = struct();
-            c.sthl.Name = 'Stance Heel Lift';
-
-            c.sthl.gains = struct();
-            c.sthl.gains.blendRate = 0;
-            c.sthl.gains.phipx_0 = 0.05;
-
-            % FIXME Use a sine curve for the blend parameter so it's C(1)
-
-            c.sthl.gains.kp = 200;
-            c.sthl.gains.kd = 20;
-            c.sthl.gains.q0 = pi/6;
-            %c.sthl.gains.q0 = @(q) pi/6 * (1);
-
             this.c = c;
-
-            % The blend functions are lexically-scoped and create
-            % closures when updated.
-            this.updateBlendFunctions();
 
             % Add a property change listener to handle changes to
             % control parameters.
             addlistener(this, 'c', 'PostSet', ...
                         @this.updateControllerCallback);
         end
-
-        function updateControllerCallback(this, src, evnt)
-            this.updateBlendFunctions();
-        end
-
-        function updateBlendFunctions(this)
-            if isfield(this.c, 'sthl')
-                this.c.sthl.blendFunctionParameter = @(q, leg) ...
-                    min(1, this.c.sthl.gains.blendRate * ...
-                        (this.model.phipx(q, leg) - ...
-                         this.c.sthl.gains.phipx_0));
-                
-                this.c.sthl.blendFunction = @(q, leg) min(...
-                    (this.c.sthl.blendFunctionParameter(q, leg) > 0) * ...
-                    this.c.sthl.blendFunctionParameter(q, leg), 1);
-            end
-        end
-
+    
         function p = getPVector(this, leg)
-        % p: [leg]
             p = leg;
         end
 
@@ -223,28 +179,6 @@ classdef hsim2dflat < hsys.hsim
                 ux(model.COORDS_QY_NSK) = ux(model.COORDS_QY_NSK) ...
                     - c.kp * (qx(model.COORDS_QY_NSK) - c.q0) ...
                     - c.kd * dqx(model.COORDS_QY_NSK);
-            end
-
-            % Apply the heel lift controller.
-            if isfield(this.c, 'sthl')
-                c = this.c.sthl.gains;
-                blendFunction = @(q) this.c.sthl.blendFunction(q, leg);
-                ux(model.COORDS_QY_STA) = ux(model.COORDS_QY_STA) + ...
-                    blendFunction(qx) * ...
-                    (-c.kp * (qx(model.COORDS_QY_STA) - c.q0) ...
-                     - c.kd * dqx(model.COORDS_QY_STA));
-            end
-            
-            % Apply the scuffing prevention controller.
-            if ~sum(cons & model.NSF_MASK)
-                c = this.c.nssp.gains;
-                h = max(0, HeightNST(qx, leg));  % Position error
-                blend = exp(-c.rho * h);
-                unsa = -blend * c.beta + ...
-                        (1 - blend) * ux(model.COORDS_QY_NSA);
-                ux(model.COORDS_QY_NSA) = unsa;
-                % fprintf(['ep: %.5e, ev: %.5e, minH: %.5e, unsfs: ' ...
-                % '%+1.5e\n'], ep, ev, minH, unsfs);
             end
 
             % Base coordinates are not actuated.

@@ -58,7 +58,7 @@ classdef hmodel2dflat < hsys.hmodelsva
 
         % Overload function from hsys.hmodel to use C++
         function val = ...
-                nonStanceHeelHeight(this, t, x, cons, leg, vfx);
+                legSwapGuard(this, t, x, cons, leg, vfx);
             q = this.splitState(x);
             val = HeightNSH(q, leg); % Extract the height
         end
@@ -66,7 +66,7 @@ classdef hmodel2dflat < hsys.hmodelsva
         % Solves for the missing coordinates necessary to place
         % the system on the guard.
         function qi = solve_qi(this, xr, leg)
-            qi = fzero(@(qi) this.nonStanceHeelHeight(...
+            qi = fzero(@(qi) this.legSwapGuard(...
                 0, this.x_iota(xr, qi, leg), [], leg, []), ...
                        -.25);
         end

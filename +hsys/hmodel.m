@@ -1,26 +1,45 @@
-classdef hmodel < handle
-%%%HMODEL
-% Model configuration for multidomain footed walker.
-    
-%% Model configuration
-%
+%HMODEL   This class provides an abstraction of robotic models for
+%   mechanical systems with contact constraints.
+
+% =================================================================
+%> @file hmodel.m
+%>
+%> @brief Abstract definition for general dynamical system model for robots.
+%>
+%> @author R. W. Sinnet | http://rwsinnet.com/ | ryan@rwsinnet.com
+%>
+%> This class provides an abstraction of robotic models for mechanical
+%> systems with contact constraints.
+% ==============================================================
+classdef hmodel < hsys.hmodelbase
     properties
+        %> A cell array of spatial Jacobians for enumerated contact points.
         J;
+        %> A cell array of spatial Jacobian time-derivatives for enumerated
+        %> contact points.
         Jdot;
-        
+
+        %> Human-readable labels for the constraits
         cons_labels;
-        nCons = 6;
         
+        %> The number of constraints considered in the model.
+        nCons = 6;
+
+        %> A struct array containing information about the modeled domains        
         domains;
+        
+        %> A struct containing the guards as fields using abbreviations for
+        %> guard labels.
         guards;
+        
         dmap;
         nDefinedDomains;
         
         event_labels;
         el_length;
     end
+
     properties (Abstract)
-        transformToAbsolute;
         footLength;
         hipWidth;
     end
@@ -41,11 +60,6 @@ classdef hmodel < handle
         CONS_KNEE_LOCK_PRE = [1 1 1 0 0 0];
         CONS_LEG_SWAP_PRE = [1 0 1 0 0 1];
         CONS_D1_INVERSE = [1 0 0 0 1 1];
-        
-        BadLegValueException = MException(...
-            'hmodel:getSvaName:BadLegValueException', ...
-            ['Leg variable must be either -1 (left leg stance) or +1 ' ...
-             '(right leg stance).']);
         
         BadForceIndexException = MException(...
             'hmodel:getForceIndex:BadForceIndex', ...
@@ -173,14 +187,7 @@ classdef hmodel < handle
             this.domains(6).g = [0 0 0 0 1 0];
             this.domains(6).n = 6;
 
-            keySet = arrayfun(@(x) {bdc(x.c)}, this.domains) ;
-            valueSet = arrayfun(@(x) {x}, this.domains(:));
-            
-            this.dmap = containers.Map(keySet, valueSet);
-            
-            % number of defined domains, the possible number can be
-            % determined from permutations of the constraints.
-            this.nDefinedDomains = length(this.domains);
+            this.setupDMap();
             
             % Constaint labels
             % Impacts are determined by this.
@@ -212,7 +219,7 @@ classdef hmodel < handle
         function val = ...
                 nonStanceHeelHeight(this, t, x, cons, leg, vfx);
             q = this.splitState(x);
-            nonStanceHeelPosition = pnsh(q, leg);
+            nonStanceHeelPosition = pnsh(q, [], leg);
             val = nonStanceHeelPosition(end); % Extract the height
         end
 
@@ -222,29 +229,7 @@ classdef hmodel < handle
             stanceToePosition = pstt(q, [], leg);
             val = stanceToePosition(end); % Extract the height
         end
-        
-        function [J Jdot] = getJacobian(this, q, dq, cons, leg, legSwap)
-        % This function returns the Jacobian matrix for a passed
-        % array of constraints. This 'cons' variable has the form
-        % described in function getJIndices.
-            if nargin < 6
-                legSwap = false;
-            end
-            
-            Jindices = this.getJIndices(cons);
-            nJ = length(Jindices);
-            
-            Jc = cellfun(@(i) (this.J{Jindices(i)}(q, leg)), ...
-                         num2cell(1:nJ), 'UniformOutput', false);
-            
-            Jcdot = cellfun(@(i) (this.Jdot{Jindices(i)}(q, dq, leg)), ...
-                            num2cell(1:nJ), 'UniformOutput', false);
-
-            % Stack the Jacobians together
-            J = cat(1, Jc{:});
-            Jdot = cat(1, Jcdot{:});
-        end
-        
+                
         function Jindices = getJIndices(this, cons)
             Jindices = [];
 
@@ -281,15 +266,6 @@ classdef hmodel < handle
             q(nq) = q(nq) + qr;
         end
         
-        function d = getDomain(this, cons)
-            d = this.dmap(bdc(cons));
-        end
-
-        function n = getDomainIndex(this, cons)
-            d = this.getDomain(cons);
-            n = d.n;
-        end
-
         function g = getGuard(this, cons)
             d = this.getDomain(cons);
             ix = find(d.g);
@@ -324,15 +300,7 @@ classdef hmodel < handle
                 
             end
         end
-
-        function constraintIndex = ...
-                getConstraintIndex(this, cons, eventIndex)
-            d = this.getDomain(cons);
-            ix = find(d.g);
-            constraintIndex = ix(eventIndex);
-        end
-
-
+        
         function eventName = getEventName(this, cons, eventIndex)
             nc = this.nCons;
             constraintIndex = this.getConstraintIndex(cons, eventIndex);
@@ -378,127 +346,6 @@ classdef hmodel < handle
                 % Toggle the constraint that was triggered.
                 newCons(constraintIndex) = ~newCons(constraintIndex);
             end
-        end
-        
-        function xf = get_xf_on_guard(this, xr, leg)
-            qi = this.solve_qi(xr, leg);
-            xf = this.x_iota(xr, qi, leg);
-
-            %nshh = this.nonStanceHeelHeight(...
-            %    0, xf, [], leg, []);
-            
-            %if nshh < 0
-            % Add minimum machine precision number to place
-            % heel above ground if the current value of qi
-            % places the heel below the ground.
-            % FIXME this might not be enough in some cases
-            % since there is a lot of arithmetic going on in
-            % the computation of nshh. Floating point...
-            %xf(this.nSpatialDim) = -nshh + 1e-20;
-            %end
-        end
-        
-        function [qout, dqout, newcons, newleg] = ...               
-                swapLegs(this, qin, dqin, cons, leg)
-            % Swap the coordinates, constraints, and stance leg
-            % variable.
-            
-            n = this.nExtDof;
-            nb = this.nBaseDof;
-            nc = this.nCons;
-            
-            [qout, dqout] = this.swapBaseCoordinates(qin, dqin, leg);
-            
-            % Flip the body coordinates.
-            qout(nb+1:n) = flipud(qin(nb+1:n));
-            dqout(nb+1:n) = flipud(dqin(nb+1:n));
-            
-            % Flip the constraints.
-            newcons = [cons(nc/2+1:nc), cons(1:nc/2)];
-            
-            % Flip the stance leg variable.
-            % Left is -1, right is +1.
-            newleg = -leg;
-        end
-
-        function [xplus, newCons, newLeg] = ...
-                resetMap(this, t, xminus, cons, eventIndex, leg)
-            fprintf('--Reset | Time: %s, Event: %s!\n', ...
-                    datestr(now, 30), ...
-                    this.getEventName(cons, eventIndex));
-            n = this.nExtDof;
-            [qminus, dqminus] = this.splitState(xminus);
-            
-            % FIXME
-            % zIndex = model.preImpactZeroIndex{domain};
-            % qminus(zIndex) = 0;
-
-            % Later, this will have to be an iterative process that
-            % depends on post-impact conditions.
-            [FCons, legSwap] = this.nextDomain(cons, eventIndex);
-            
-            % Compute Jacobian for impact.
-            JR = this.getJacobian(qminus, dqminus, FCons, leg, legSwap);
-            
-            %Me = Mmat(qminus, [], leg);
-            Me = this.computeUnconstrainedDynamics(...
-                qminus, 0*dqminus, leg);
-            
-            PR = [Me, -JR';
-                  JR, zeros(size(JR,1))] \ ...
-                 [Me*dqminus; zeros(size(JR,1),1)];
-            
-            qplus = qminus;
-            dqplus = PR(1:n);
-            
-            if legSwap
-                [qplus, dqplus, newCons, newLeg] = ...
-                    this.swapLegs(qplus, dqplus, FCons, leg);
-            else
-                newCons = FCons;
-                newLeg = leg;
-            end
-            
-            xplus = [qplus; dqplus];
-            
-            return
-        end
-        
-        function [q, dq] = splitState(this, x)
-            n = this.nExtDof;
-            q = x(1:n);
-            dq = x(n+1:2*n);
-        end
-        
-        function [Me, He] = ...
-                computeUnconstrainedDynamics(this, qe, dqe, leg);
-            % Evaluate the natural system dynamics.
-            Me = Mmat(qe, [], leg);
-            Ce = Cmat(qe, dqe, leg);
-            Ge = reshape(Gmat(qe, [], leg), size(qe));
-            He = Ce*dqe + Ge;
-        end
-        
-        function [Fhc, Bhc] = computeWrenches(...
-            this, qx, dqx, ux, cons, leg, Mx, Hx);
-            
-            % Construst the Jacobian for the 'cons' and evaluate it
-            % and its time derivative at the current state, x.
-            nx = this.nExtDof;
-            [J Jdot] = this.getJacobian(qx, dqx, cons, leg);
-            
-            nhc = size(J, 1);           % Number of holonomic
-                                        % constraints on system
-            Bhc = [eye(nx), J'];        % Actuator torque +
-                                        % constraining force
-                                        % distribution map
-            
-            % Don't apply forces along the constraints.
-            vx = [ux; zeros(nhc, 1)];
-            
-            % Compute the constraining wrenches (GRF, knee-lock
-            % force, et cetera).            
-            Fhc = -J/Mx*J'\(Jdot*dqx + J/Mx*(Bhc * vx - Hx));
         end
         
         function fIndex = getForceIndex(this, cons, mask)

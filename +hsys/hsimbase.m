@@ -228,9 +228,10 @@ classdef hsim < handle
             
             if legSwap
                 % Check if the system is on the leg swap guard but the
-                % non-stance heel is below the ground due to numerical
+                % non-stance foot is below the ground due to numerical
                 % errors.
-                h = this.model.legSwapGuard([], x, cons, leg, []);
+                h = this.model.legSwapGuard
+                h = this.model.nonStanceHeelHeight([], x, cons, leg, []);
                 if (-1e-10 < h) && (h < 0)
                     p.ic.x0(this.model.nSpatialDim) = ...
                         x(this.model.nSpatialDim) - h + eps;
@@ -396,7 +397,7 @@ classdef hsim < handle
             % guard at the start of the final domain (of a single
             % step.)
             if d.g(5) && ...
-                    legSwapGuard(this.model, [], x, cons, ...
+                    nonStanceHeelHeight(this.model, [], x, cons, ...
                                         leg, []) < 0 && ...
                     dot([1, 0, 0], pnst(x, [], leg)) > ...
                     dot([1, 0, 0], pstt(x, [], leg))
